@@ -1,8 +1,4 @@
-import { FunctionComponent } from "react";
-import { Pacifico } from "next/font/google";
-import { Chart } from "./Chart";
-
-const pacifico = Pacifico({ subsets: ["latin"], weight: "400" });
+import { SpacesGraph } from "@/components/SpacesGraph";
 
 const fetchUtilization = async () => {
   const response = await fetch(
@@ -28,61 +24,72 @@ const fetchPrediction = async (after: number) => {
 
 const fetchPredictions = async () => {
   const times = await Promise.all(
-    [5, 10, 15, 20, 25, 30].map((after) => fetchPrediction(after))
+    [10, 20, 30, 40, 50, 60].map((after) => fetchPrediction(after))
   );
   return times;
 };
 
-const Utilization: FunctionComponent<{
-  spacesAvailable: number;
-  predictions: Array<number>;
-}> = ({ spacesAvailable, predictions }) => {
-  if (spacesAvailable === 0 && predictions.find((p) => p > 0)) {
-    return "Freeing up soon";
+const getCurrentSpacesText = (spacesAvailable: number) =>
+  `${spacesAvailable} ${spacesAvailable === 1 ? "space" : "spaces"}`;
+
+const getFullAtText = (predictions: number[]) => {
+  const fullAt = predictions.findIndex((prediction) => prediction === 0);
+  if (fullAt === -1) {
+    return "Spaces are not expected to run out within the next hour.";
   }
-  if (spacesAvailable < 30 && spacesAvailable < predictions[0]) {
-    return "Things are on the up";
-  }
-  if (spacesAvailable === 0) {
-    return "None left";
-  }
-  if (spacesAvailable === 1) {
-    return "Literally one left";
-  }
-  if (spacesAvailable < 5) {
-    return "Hurry up";
-  }
-  if (spacesAvailable < 10) {
-    return "Hope you're already on the way";
-  }
-  if (spacesAvailable < 15) {
-    return "Time to start driving there";
-  }
-  return "Plenty";
+  return `All spaces are predicted to be taken within the next ${
+    (fullAt + 1) * 10
+  } minutes.`;
 };
 
 export default async function Home() {
   const utilization = await fetchUtilization();
   const predictions = await fetchPredictions();
+
+  const timeNowText = new Date().toString();
+
+  const currentSpacesText = getCurrentSpacesText(utilization.spacesAvailable);
+  const fullAtText = getFullAtText(predictions);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8 text-center">
-      <h1 className={`${pacifico.className} text-3xl text-pink-600`}>
-        Hullulahti
-      </h1>
-      <p className="text-8xl mb-4 text-green-700">
-        {`${utilization.spacesAvailable} ${
-          utilization.spacesAvailable === 1 ? "space" : "spaces"
-        }`}
+    <main className="w-full max-w-lg mx-auto p-4 font-serif">
+      <hgroup>
+        <h1 className="text-6xl">Hullulahti</h1>
+        <p className="text-2xl">Ruoholahti Park & Ride Situation</p>
+      </hgroup>
+      <p className="my-4">
+        There are currently <strong>{currentSpacesText}</strong> available.{" "}
+        {fullAtText}
       </p>
-      <p className="text-4xl mb-16 text-green-700">
-        <Utilization
-          spacesAvailable={utilization.spacesAvailable}
-          predictions={predictions}
+      <figure className="my-4">
+        <SpacesGraph
+          data={[utilization.spacesAvailable, ...predictions]}
+          className="w-full"
         />
+        <figcaption className="text-center text-sm">
+          Predicted availability for the next hour (spaces/minutes)
+        </figcaption>
+      </figure>
+      <h2 className="my-4 text-2xl">What is this website?</h2>
+      <p className="my-4">
+        It&apos;s crazy that HSL put a Park & Ride as close to the center as
+        Ruoholahti. With only 141 parking spaces, the competitiveness of finding
+        a spot there is also crazy.
       </p>
-      <div className="w-full max-w-md">
-        <Chart predictions={predictions} />
-      </div>
+      <p className="my-4">
+        This website was made to make it easier to know whether you should even
+        bother trying to park there.
+      </p>
+      <p className="my-4">
+        Prediction data is from{" "}
+        <a
+          className="underline"
+          href="https://parking.fintraffic.fi/facilities/619"
+        >
+          Fintraffic
+        </a>
+        . Data last fetched: {timeNowText}.
+      </p>
     </main>
   );
 }
