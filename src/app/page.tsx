@@ -1,4 +1,7 @@
+import { DateTime } from "luxon";
+
 import { SpacesGraph } from "@/components/SpacesGraph";
+import { MorningSpacesGraph } from "@/components/MorningSpacesGraph";
 
 const fetchUtilization = async () => {
   const response = await fetch(
@@ -24,8 +27,33 @@ const fetchPrediction = async (after: number) => {
 
 const fetchPredictions = async () => {
   const times = await Promise.all(
-    [10, 20, 30, 40, 50, 60].map((after) => fetchPrediction(after))
+    Array.from(Array(6).keys())
+      .map((n) => (n + 1) * 10)
+      .map((after) => fetchPrediction(after))
   );
+  return times;
+};
+
+const fetchMorningPredictions = async () => {
+  const timeNow = DateTime.now().setZone("Europe/Helsinki");
+
+  if (timeNow.hour >= 6 && timeNow.hour < 9) {
+    return null;
+  }
+
+  const startTime = DateTime.now()
+    .setZone("Europe/Helsinki")
+    .set({ hour: 6, minute: 0, second: 0, millisecond: 0 })
+    .plus({ day: timeNow.hour >= 9 ? 1 : 0 });
+
+  const baseMins = Math.round(startTime.diff(timeNow, "minutes").minutes);
+
+  const times = await Promise.all(
+    Array.from(Array(7).keys())
+      .map((n) => baseMins + n * 30)
+      .map((after) => fetchPrediction(after))
+  );
+
   return times;
 };
 
@@ -45,6 +73,7 @@ const getFullAtText = (predictions: number[]) => {
 export default async function Home() {
   const utilization = await fetchUtilization();
   const predictions = await fetchPredictions();
+  const morningPredictions = await fetchMorningPredictions();
 
   const timeNowText = new Date().toString();
 
@@ -70,6 +99,14 @@ export default async function Home() {
           Predicted availability for the next hour (spaces/minutes)
         </figcaption>
       </figure>
+      {morningPredictions && (
+        <figure className="my-4">
+          <MorningSpacesGraph data={morningPredictions} className="w-full" />
+          <figcaption className="text-center text-sm">
+            Predicted availability during peak morning hours (spaces/time)
+          </figcaption>
+        </figure>
+      )}
       <h2 className="my-4 text-2xl">What is this website?</h2>
       <p className="my-4">
         It&apos;s crazy that HSL put a Park & Ride as close to the center as
