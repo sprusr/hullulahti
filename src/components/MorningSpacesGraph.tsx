@@ -38,9 +38,11 @@ export const MorningSpacesGraph: FunctionComponent<Props> = ({
   const x = scaleUtc(
     [
       DateTime.now()
+        .setZone("Europe/Helsinki")
         .set({ hour: 6, minute: 0, second: 0, millisecond: 0 })
         .toJSDate(),
       DateTime.now()
+        .setZone("Europe/Helsinki")
         .set({ hour: 9, minute: 0, second: 0, millisecond: 0 })
         .toJSDate(),
     ],

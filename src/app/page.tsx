@@ -60,7 +60,16 @@ const fetchMorningPredictions = async () => {
 const getCurrentSpacesText = (spacesAvailable: number) =>
   `${spacesAvailable} ${spacesAvailable === 1 ? "space" : "spaces"}`;
 
-const getFullAtText = (predictions: number[]) => {
+const getFullAtText = (predictions: number[], spacesAvailable: number) => {
+  if (spacesAvailable === 0) {
+    const availableAt = predictions.findIndex((prediction) => prediction > 0);
+    if (availableAt === -1) {
+      return "Spaces are not expected to become available within the next hour.";
+    }
+    return `Spaces are expected to become available within the next ${
+      (availableAt + 1) * 10
+    } minutes.`;
+  }
   const fullAt = predictions.findIndex((prediction) => prediction === 0);
   if (fullAt === -1) {
     return "Spaces are not expected to run out within the next hour.";
@@ -71,14 +80,16 @@ const getFullAtText = (predictions: number[]) => {
 };
 
 export default async function Home() {
-  const utilization = await fetchUtilization();
+  const { spacesAvailable } = await fetchUtilization();
   const predictions = await fetchPredictions();
   const morningPredictions = await fetchMorningPredictions();
 
-  const timeNowText = new Date().toString();
+  const timeNowText = DateTime.now()
+    .setZone("Europe/Helsinki")
+    .toLocaleString(DateTime.TIME_WITH_SHORT_OFFSET);
 
-  const currentSpacesText = getCurrentSpacesText(utilization.spacesAvailable);
-  const fullAtText = getFullAtText(predictions);
+  const currentSpacesText = getCurrentSpacesText(spacesAvailable);
+  const fullAtText = getFullAtText(predictions, spacesAvailable);
 
   return (
     <main className="w-full max-w-lg mx-auto p-4 font-serif">
@@ -87,12 +98,15 @@ export default async function Home() {
         <p className="text-2xl">Ruoholahti Park & Ride Situation</p>
       </hgroup>
       <p className="my-4">
-        There are currently <strong>{currentSpacesText}</strong> available.{" "}
-        {fullAtText}
+        There {spacesAvailable === 1 ? "is" : "are"} currently{" "}
+        <strong>{`${spacesAvailable} ${
+          spacesAvailable === 1 ? "space" : "spaces"
+        }`}</strong>{" "}
+        available. {fullAtText}
       </p>
       <figure className="my-4">
         <SpacesGraph
-          data={[utilization.spacesAvailable, ...predictions]}
+          data={[spacesAvailable, ...predictions]}
           className="w-full"
         />
         <figcaption className="text-center text-sm">
