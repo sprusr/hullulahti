@@ -60,6 +60,7 @@ export const MorningSpacesGraph: FunctionComponent<Props> = ({
     (d, i) =>
       x(
         DateTime.now()
+          .setZone("Europe/Helsinki")
           .set({ hour: 6, minute: 0, second: 0, millisecond: 0 })
           .plus({ minutes: i * 30 })
           .toJSDate()
@@ -87,6 +88,7 @@ export const MorningSpacesGraph: FunctionComponent<Props> = ({
             key={i}
             cx={x(
               DateTime.now()
+                .setZone("Europe/Helsinki")
                 .set({ hour: 6, minute: 0, second: 0, millisecond: 0 })
                 .plus({ minutes: i * 30 })
                 .toJSDate()
